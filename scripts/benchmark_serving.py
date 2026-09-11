@@ -243,7 +243,7 @@ def resolve_revision(model_id: str) -> str:
     try:
         from huggingface_hub import HfApi
 
-        return HfApi().model_info(model_id).sha
+        return HfApi().model_info(model_id).sha or "unresolved"
     except Exception as exc:
         print(f"Warning: could not resolve revision for {model_id}: {exc}", file=sys.stderr)
         return "unresolved"
@@ -302,32 +302,38 @@ class VLLMServer:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self.log_handle = self.log_path.open("w", encoding="utf-8")
         print("Starting:", " ".join(self.command), flush=True)
-        self.process = subprocess.Popen(
-            self.command,
-            stdout=self.log_handle,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=True,
-            env={**os.environ, "VLLM_LOGGING_LEVEL": "INFO"},
-        )
-        deadline = time.monotonic() + self.startup_timeout
-        last_error = "server did not answer"
-        while time.monotonic() < deadline:
-            if self.process.poll() is not None:
-                raise RuntimeError(
-                    f"vLLM exited with code {self.process.returncode}; inspect {self.log_path}"
-                )
-            try:
-                with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as response:
-                    if response.status == 200:
-                        print("Server is ready.", flush=True)
-                        return self
-            except Exception as exc:
-                last_error = str(exc)
-            time.sleep(2)
-        raise TimeoutError(f"vLLM did not become healthy: {last_error}; inspect {self.log_path}")
+        try:
+            self.process = subprocess.Popen(
+                self.command,
+                stdout=self.log_handle,
+                stderr=subprocess.STDOUT,
+                text=True,
+                start_new_session=True,
+                env={**os.environ, "VLLM_LOGGING_LEVEL": "INFO"},
+            )
+            deadline = time.monotonic() + self.startup_timeout
+            last_error = "server did not answer"
+            while time.monotonic() < deadline:
+                if self.process.poll() is not None:
+                    raise RuntimeError(
+                        f"vLLM exited with code {self.process.returncode}; inspect {self.log_path}"
+                    )
+                try:
+                    with urllib.request.urlopen(f"{self.base_url}/health", timeout=5) as response:
+                        if response.status == 200:
+                            print("Server is ready.", flush=True)
+                            return self
+                except Exception as exc:
+                    last_error = str(exc)
+                time.sleep(2)
+            raise TimeoutError(
+                f"vLLM did not become healthy: {last_error}; inspect {self.log_path}"
+            )
+        except BaseException:
+            self.stop(wait_after=False)
+            raise
 
-    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+    def stop(self, wait_after: bool = True) -> None:
         if self.process is not None and self.process.poll() is None:
             try:
                 os.killpg(self.process.pid, signal.SIGTERM)
@@ -337,7 +343,12 @@ class VLLMServer:
                 self.process.wait(timeout=10)
         if self.log_handle is not None:
             self.log_handle.close()
-        time.sleep(5)
+            self.log_handle = None
+        if wait_after:
+            time.sleep(5)
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        self.stop()
 
 
 def load_tokenizer(model_id: str, revision: str):

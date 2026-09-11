@@ -8,6 +8,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.ticker import ScalarFormatter
 
 
 MODEL_ORDER = ["small_dense", "moe", "large_dense"]
@@ -30,10 +31,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--summary", type=Path, default=Path("results/serving_summary.csv"))
     parser.add_argument("--latex-table", type=Path, default=Path("results/summary_table.tex"))
     parser.add_argument("--figure-dir", type=Path, default=Path("figures"))
+    parser.add_argument(
+        "--allow-environment-mismatch",
+        action="store_true",
+        help="plot despite hardware/software differences (must be disclosed)",
+    )
     return parser.parse_args()
 
 
-def validate(df: pd.DataFrame) -> None:
+def validate(df: pd.DataFrame, allow_environment_mismatch: bool = False) -> None:
     if df.empty:
         raise SystemExit("raw CSV has no measurements")
     required = {
@@ -42,8 +48,11 @@ def validate(df: pd.DataFrame) -> None:
         "repeat",
         "concurrency",
         "target_prompt_tokens_per_request",
+        "target_output_tokens_per_request",
         "prompt_tokens_per_second",
         "output_tokens_per_second",
+        "weight_quantization",
+        "kv_cache_dtype",
     }
     missing = sorted(required - set(df.columns))
     if missing:
@@ -74,8 +83,10 @@ def validate(df: pd.DataFrame) -> None:
         "seed",
     ]
     changed = [column for column in fixed_columns if column in df and df[column].nunique(dropna=False) != 1]
-    if changed:
+    if changed and not allow_environment_mismatch:
         raise SystemExit("incomparable fixed settings in raw CSV: " + ", ".join(changed))
+    if changed:
+        print("WARNING: hardware/software differs across rows: " + ", ".join(changed))
     if set(df["weight_quantization"].astype(str)) != {"fp8"}:
         raise SystemExit("raw rows do not all use FP8 weights")
     if set(df["kv_cache_dtype"].astype(str)) != {"fp8"}:
@@ -91,6 +102,24 @@ def validate(df: pd.DataFrame) -> None:
     ]
     if df.duplicated(key_columns).any():
         raise SystemExit("raw CSV contains duplicate measurement keys")
+
+    condition_columns = [
+        "workload",
+        "target_prompt_tokens_per_request",
+        "target_output_tokens_per_request",
+        "concurrency",
+        "repeat",
+    ]
+    expected_conditions = None
+    for model_key in MODEL_ORDER:
+        conditions = set(
+            df.loc[df["model_key"] == model_key, condition_columns]
+            .itertuples(index=False, name=None)
+        )
+        if expected_conditions is None:
+            expected_conditions = conditions
+        elif conditions != expected_conditions:
+            raise SystemExit("the three models do not have identical measured conditions")
     if "model_revision" in df:
         changed_revisions = [
             key
@@ -165,7 +194,7 @@ def plot_workload(summary: pd.DataFrame, workload: str, output_base: Path) -> No
         )
     axis.set_xscale("log", base=2)
     axis.set_xticks(sorted(subset[x_column].unique()))
-    axis.get_xaxis().set_major_formatter(plt.ScalarFormatter())
+    axis.get_xaxis().set_major_formatter(ScalarFormatter())
     axis.set_xlabel(x_label)
     axis.set_ylabel(y_label)
     axis.set_title(title)
@@ -186,11 +215,13 @@ def write_latex_table(summary: pd.DataFrame, path: Path) -> None:
         if row["workload"] == "prefill":
             setting = f"$L={int(row['target_prompt_tokens_per_request'])}$"
             throughput = float(row["prompt_tokens_per_second_mean"])
-            deviation = float(row["prompt_tokens_per_second_std"] or 0)
+            value = row["prompt_tokens_per_second_std"]
+            deviation = float(value) if pd.notna(value) else 0.0
         else:
             setting = f"$C={int(row['concurrency'])}$"
             throughput = float(row["output_tokens_per_second_mean"])
-            deviation = float(row["output_tokens_per_second_std"] or 0)
+            value = row["output_tokens_per_second_std"]
+            deviation = float(value) if pd.notna(value) else 0.0
         rows.append(
             f"{latex_escape(str(row['workload']).capitalize())} & "
             f"{latex_escape(MODEL_LABELS[str(row['model_key'])])} & {setting} & "
@@ -215,7 +246,7 @@ def write_latex_table(summary: pd.DataFrame, path: Path) -> None:
 def main() -> None:
     args = parse_args()
     df = pd.read_csv(args.input)
-    validate(df)
+    validate(df, args.allow_environment_mismatch)
     summary = summarize(df)
     args.summary.parent.mkdir(parents=True, exist_ok=True)
     summary.to_csv(args.summary, index=False)
