@@ -31,6 +31,7 @@ KEY_COLUMNS = [
     "model_key",
     "workload",
     "target_prompt_tokens_per_request",
+    "target_output_tokens_per_request",
     "concurrency",
     "repeat",
 ]
@@ -59,6 +60,15 @@ def main() -> None:
     if changed and not args.allow_environment_mismatch:
         raise SystemExit("environment/settings mismatch: " + ", ".join(changed))
     merged = merged.sort_values(KEY_COLUMNS)
+    changed_revisions = [
+        key
+        for key, count in merged.groupby("model_key")["model_revision"].nunique(dropna=False).items()
+        if count != 1
+    ]
+    if changed_revisions:
+        raise SystemExit(
+            "multiple checkpoint revisions used for: " + ", ".join(changed_revisions)
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     merged.to_csv(args.output, index=False)
     print(f"Merged {len(merged)} rows into {args.output}")
@@ -68,4 +78,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

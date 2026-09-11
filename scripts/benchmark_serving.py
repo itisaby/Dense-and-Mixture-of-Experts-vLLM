@@ -281,7 +281,8 @@ def server_command(spec: ModelSpec, revision: str, port: int, args: argparse.Nam
         str(args.max_num_seqs),
         "--max-num-batched-tokens",
         str(args.max_num_batched_tokens),
-        "--disable-log-requests",
+        "--no-enable-log-requests",
+        "--no-enable-prefix-caching",
     ]
     if revision != "unresolved":
         command.extend(["--revision", revision, "--tokenizer-revision", revision])
@@ -454,17 +455,18 @@ def synchronized_batch(
     }
 
 
-def measurement_key(row: dict[str, Any]) -> tuple[str, str, int, int, int]:
+def measurement_key(row: dict[str, Any]) -> tuple[str, str, int, int, int, int]:
     return (
         str(row["model_key"]),
         str(row["workload"]),
         int(row["target_prompt_tokens_per_request"]),
+        int(row["target_output_tokens_per_request"]),
         int(row["concurrency"]),
         int(row["repeat"]),
     )
 
 
-def existing_keys(path: Path) -> set[tuple[str, str, int, int, int]]:
+def existing_keys(path: Path) -> set[tuple[str, str, int, int, int, int]]:
     if not path.exists():
         return set()
     with path.open(newline="", encoding="utf-8") as handle:
@@ -474,7 +476,7 @@ def existing_keys(path: Path) -> set[tuple[str, str, int, int, int]]:
         return {measurement_key(row) for row in reader}
 
 
-def prepare_output(path: Path, overwrite: bool, resume: bool) -> set[tuple[str, str, int, int, int]]:
+def prepare_output(path: Path, overwrite: bool, resume: bool) -> set[tuple[str, str, int, int, int, int]]:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and overwrite:
         path.unlink()
@@ -542,7 +544,7 @@ def run_condition(
     base_url: str,
     info: dict[str, Any],
     args: argparse.Namespace,
-    completed: set[tuple[str, str, int, int, int]],
+    completed: set[tuple[str, str, int, int, int, int]],
 ) -> None:
     total_rounds = args.warmups + args.repetitions
     for round_index in range(total_rounds):
@@ -699,4 +701,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

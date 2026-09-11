@@ -85,11 +85,22 @@ def validate(df: pd.DataFrame) -> None:
         "model_key",
         "workload",
         "target_prompt_tokens_per_request",
+        "target_output_tokens_per_request",
         "concurrency",
         "repeat",
     ]
     if df.duplicated(key_columns).any():
         raise SystemExit("raw CSV contains duplicate measurement keys")
+    if "model_revision" in df:
+        changed_revisions = [
+            key
+            for key, count in df.groupby("model_key")["model_revision"].nunique(dropna=False).items()
+            if count != 1
+        ]
+        if changed_revisions:
+            raise SystemExit(
+                "multiple checkpoint revisions used for: " + ", ".join(changed_revisions)
+            )
 
 
 def summarize(df: pd.DataFrame) -> pd.DataFrame:
@@ -219,4 +230,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -57,11 +57,17 @@ time and download each CSV:
 
 ```bash
 python scripts/benchmark_serving.py --models small_dense \
-  --output results/raw_small_dense.csv --overwrite
+  --output results/raw_small_dense.csv \
+  --metadata results/metadata_small_dense.json \
+  --log-dir results/logs/small_dense_session --overwrite
 python scripts/benchmark_serving.py --models moe \
-  --output results/raw_moe.csv --overwrite
+  --output results/raw_moe.csv \
+  --metadata results/metadata_moe.json \
+  --log-dir results/logs/moe_session --overwrite
 python scripts/benchmark_serving.py --models large_dense \
-  --output results/raw_large_dense.csv --overwrite
+  --output results/raw_large_dense.csv \
+  --metadata results/metadata_large_dense.json \
+  --log-dir results/logs/large_dense_session --overwrite
 ```
 
 Put the three CSVs in the same checkout and merge them:
@@ -111,4 +117,3 @@ The plotted point is the mean across recorded repetitions; error bars are one
 sample standard deviation. Aggregate throughput is used because the question
 is about serving capacity, not single-request latency. The raw file also keeps
 total-token throughput and request latency statistics for auditing.
-
