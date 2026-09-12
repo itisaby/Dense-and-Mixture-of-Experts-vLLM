@@ -1,4 +1,9 @@
-# Dense vs. Mixture-of-Experts serving with vLLM
+# Empirical GPU experiments
+
+This repository contains two controlled experiments: dense-versus-MoE serving
+with vLLM and supervised fine-tuning with LoRA.
+
+## Dense vs. Mixture-of-Experts serving
 
 This repository contains a single-GPU experiment comparing:
 
@@ -117,3 +122,33 @@ The plotted point is the mean across recorded repetitions; error bars are one
 sample standard deviation. Aggregate throughput is used because the question
 is about serving capacity, not single-request latency. The raw file also keeps
 total-token throughput and request latency statistics for auditing.
+
+## Supervised fine-tuning with LoRA
+
+The second experiment compares LoRA ranks 1, 4, and 16 with full-weight
+fine-tuning of `Qwen/Qwen2.5-0.5B`. Every variant uses the same deterministic
+1,000-conversation `train_sft` subset from
+`HuggingFaceH4/ultrachat_200k`, the same 100 held-out `test_sft`
+conversations, and the same training hyperparameters and example order.
+
+Open [`sft_colab.ipynb`](sft_colab.ipynb) on one NVIDIA L4 runtime and run all
+cells. The experiment is implemented in
+[`scripts/sft_experiment.py`](scripts/sft_experiment.py):
+
+```bash
+python scripts/sft_experiment.py --variants all \
+  --output-dir results/sft --overwrite
+python scripts/plot_sft_results.py --input-dir results/sft
+```
+
+The default matched setup uses two epochs, maximum length 512, BF16, effective
+batch size 16, learning rate `5e-5`, AdamW, cosine decay, and validation every
+10 optimizer steps. User and system tokens are masked from the loss. LoRA uses
+PEFT's `target_modules="all-linear"`; `lora_alpha` is twice the rank so the
+scaling ratio remains constant while rank changes.
+
+Generated artifacts include `metrics.csv`, raw `loss_history.csv`, immutable
+model/dataset revisions, selected conversation identifiers, unedited held-out
+generations, report-ready LaTeX tables, and PDF/PNG figures. The report skeleton
+is [`latex/sft_solution.tex`](latex/sft_solution.tex); its interpretation is
+intentionally left open until a real GPU run is available.
