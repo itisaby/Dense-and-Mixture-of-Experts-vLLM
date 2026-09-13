@@ -4,8 +4,9 @@ We fine-tuned \texttt{Qwen/Qwen2.5-0.5B} on a fixed, seeded subset of
 1000 conversations from \texttt{HuggingFaceH4/ultrachat\_200k}'s
 \texttt{train\_sft} split. We used 100 independently selected
 \texttt{test\_sft} conversations for held-out loss and qualitative
-evaluation. The immutable model and dataset revisions and all selected
-conversation identifiers are provided in
+evaluation. After seeded shuffling, we selected the first examples containing
+an assistant target within the 512-token limit; skipped and selected identifiers
+are provided with the immutable model and dataset revisions in
 \texttt{results/sft/metadata.json} and
 \texttt{results/sft/selection\_manifest.json}.
 

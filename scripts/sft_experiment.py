@@ -172,18 +172,54 @@ def conversation_identifier(row: dict[str, Any]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def select_usable_subset(source: Any, tokenizer: Any, size: int,
+                         max_length: int, seed: int):
+    """Take the first `size` encodable rows after a deterministic shuffle."""
+    selected_rows: list[dict[str, Any]] = []
+    selected_encoded: list[dict[str, Any]] = []
+    selected_positions: list[int] = []
+    skipped_identifiers: list[str] = []
+    for shuffled_position, source_row in enumerate(source.shuffle(seed=seed)):
+        row = dict(source_row)
+        try:
+            encoded = encode_conversation(tokenizer, row["messages"], max_length)
+        except ValueError:
+            skipped_identifiers.append(conversation_identifier(row))
+            continue
+        selected_rows.append(row)
+        selected_encoded.append(encoded)
+        selected_positions.append(shuffled_position)
+        if len(selected_rows) == size:
+            break
+    if len(selected_rows) != size:
+        raise RuntimeError(
+            f"found only {len(selected_rows)} usable conversations; requested {size}"
+        )
+    return selected_rows, selected_encoded, selected_positions, skipped_identifiers
+
+
 def prepare_datasets(tokenizer: Any, dataset_revision: str, args: argparse.Namespace):
     from datasets import Dataset, load_dataset
 
     train_source = load_dataset(DATASET_ID, split="train_sft", revision=dataset_revision)
     eval_source = load_dataset(DATASET_ID, split="test_sft", revision=dataset_revision)
-    train_rows = [dict(row) for row in train_source.shuffle(seed=args.seed).select(range(args.train_size))]
-    eval_rows = [dict(row) for row in eval_source.shuffle(seed=args.seed).select(range(args.eval_size))]
-    train_encoded = [encode_conversation(tokenizer, row["messages"], args.max_length) for row in train_rows]
-    eval_encoded = [encode_conversation(tokenizer, row["messages"], args.max_length) for row in eval_rows]
+    train_rows, train_encoded, train_positions, train_skipped = select_usable_subset(
+        train_source, tokenizer, args.train_size, args.max_length, args.seed
+    )
+    eval_rows, eval_encoded, eval_positions, eval_skipped = select_usable_subset(
+        eval_source, tokenizer, args.eval_size, args.max_length, args.seed
+    )
     manifest = {
+        "selection_rule": (
+            "first requested number of conversations with an assistant target "
+            "within max_length after seeded shuffle"
+        ),
         "train_identifiers": [conversation_identifier(row) for row in train_rows],
         "eval_identifiers": [conversation_identifier(row) for row in eval_rows],
+        "train_shuffled_positions": train_positions,
+        "eval_shuffled_positions": eval_positions,
+        "train_skipped_identifiers": train_skipped,
+        "eval_skipped_identifiers": eval_skipped,
         "train_mean_tokens": sum(row["length"] for row in train_encoded) / len(train_encoded),
         "eval_mean_tokens": sum(row["length"] for row in eval_encoded) / len(eval_encoded),
         "train_truncated": sum(bool(row["truncated"]) for row in train_encoded),

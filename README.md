@@ -130,6 +130,9 @@ fine-tuning of `Qwen/Qwen2.5-0.5B`. Every variant uses the same deterministic
 1,000-conversation `train_sft` subset from
 `HuggingFaceH4/ultrachat_200k`, the same 100 held-out `test_sft`
 conversations, and the same training hyperparameters and example order.
+Selection takes the first usable examples after a seeded shuffle; conversations
+whose assistant target begins beyond the 512-token limit are skipped and their
+identifiers are recorded in the selection manifest.
 
 Open [`sft_colab.ipynb`](sft_colab.ipynb) on one NVIDIA L4 runtime and run all
 cells. The experiment is implemented in
@@ -140,6 +143,11 @@ python scripts/sft_experiment.py --variants all \
   --output-dir results/sft --overwrite
 python scripts/plot_sft_results.py --input-dir results/sft
 ```
+
+`requirements_sft.txt` intentionally does not reinstall PyTorch: Colab ships a
+CUDA-matched build, and replacing that core package in a live kernel can leave
+an inconsistent installation. Use a fresh runtime when switching from the
+serving experiment to this SFT experiment.
 
 The default matched setup uses two epochs, maximum length 512, BF16, effective
 batch size 16, learning rate `5e-5`, AdamW, cosine decay, and validation every
