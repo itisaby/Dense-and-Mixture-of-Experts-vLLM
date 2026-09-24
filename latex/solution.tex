@@ -1,8 +1,7 @@
 \solution{
 \paragraph{Experimental environment.}
-All measurements were collected on one \textbf{TODO: GPU name and VRAM}
-using vLLM \textbf{TODO: version}, CUDA \textbf{TODO: version}, and
-PyTorch \textbf{TODO: version}. Each checkpoint was loaded and measured
+All measurements were collected on one NVIDIA L4 (23,034 MiB)
+using vLLM 0.10.2, CUDA 12.8, and PyTorch 2.8.0+cu128. Each checkpoint was loaded and measured
 separately on the same GPU. Exact software and model revisions are recorded in
 \texttt{results/serving\_metadata.json}.
 
@@ -57,18 +56,16 @@ where $O_i=256$ for every request.
 \end{figure}
 
 \paragraph{Results and interpretation.}
-\textbf{TODO after the Colab run: report the measured crossovers and ratios,
-not an expected trend.} State where OLMoE is close to the 1B dense model
-because only a subset of experts (about 1B parameters) is active per token.
-Then state where it approaches the 7B dense model because all 7B parameters
-must reside in memory and a batch that routes across many experts increases
-expert-weight traffic and routing/kernel overhead. Discuss separately how
-longer prefills change arithmetic intensity and how concurrent decode streams
-change GPU utilization and the union of experts touched. These mechanisms are
-consistent with the OLMoE architecture described by
-\citet{muennighoff2025olmoe}, but the claimed serving advantage here must be
-supported by the measured values in Figures~\ref{fig:prefill-throughput} and
-\ref{fig:decode-throughput}.
+OLMoE beat the 7B dense model at every measured point, but did not overtake
+the 1B dense model. Its prefill advantage over the 7B model grew from about
+$1.9\times$ at 128 tokens to $3.3\times$ at 3072 tokens. During decode, the
+advantage narrowed from $3.9\times$ at one generation to $1.26\times$ at 64.
+Only about 1B expert parameters are active per token, so OLMoE's arithmetic
+cost is closer to the small dense model. However, all 7B parameters remain in
+memory, and concurrent requests touch a wider set of experts. Expert-weight
+traffic and routing overhead therefore make its high-concurrency behavior
+closer to the large dense model. These mechanisms are consistent with the
+OLMoE architecture described by \citet{muennighoff2025olmoe}.
 
 \paragraph{Artifacts.}
 The full experiment is implemented in
@@ -77,4 +74,3 @@ The full experiment is implemented in
 \texttt{scripts/plot\_serving\_results.py}. A generated numerical summary can
 be included with \texttt{\textbackslash input\{results/summary\_table.tex\}}.
 }
-

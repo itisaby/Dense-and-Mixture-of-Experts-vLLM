@@ -1,0 +1,42 @@
+\begin{tabular}{llrr}
+\toprule
+Workload & Model & Setting & Mean tokens/s \\
+\midrule
+Decode & Dense 7B & $C=1$ & 28.5 $\pm$ 0.0 \\
+Decode & Dense 7B & $C=2$ & 56.2 $\pm$ 0.0 \\
+Decode & Dense 7B & $C=4$ & 110.5 $\pm$ 0.1 \\
+Decode & Dense 7B & $C=8$ & 212.9 $\pm$ 0.1 \\
+Decode & Dense 7B & $C=16$ & 398.8 $\pm$ 0.2 \\
+Decode & Dense 7B & $C=32$ & 710.4 $\pm$ 0.4 \\
+Decode & Dense 7B & $C=64$ & 1106.9 $\pm$ 0.5 \\
+Decode & MoE 1B active / 7B total & $C=1$ & 110.6 $\pm$ 0.2 \\
+Decode & MoE 1B active / 7B total & $C=2$ & 160.3 $\pm$ 4.1 \\
+Decode & MoE 1B active / 7B total & $C=4$ & 225.9 $\pm$ 0.7 \\
+Decode & MoE 1B active / 7B total & $C=8$ & 332.0 $\pm$ 17.3 \\
+Decode & MoE 1B active / 7B total & $C=16$ & 504.7 $\pm$ 3.6 \\
+Decode & MoE 1B active / 7B total & $C=32$ & 848.9 $\pm$ 8.1 \\
+Decode & MoE 1B active / 7B total & $C=64$ & 1393.7 $\pm$ 40.6 \\
+Decode & Dense 1B & $C=1$ & 116.7 $\pm$ 0.3 \\
+Decode & Dense 1B & $C=2$ & 227.2 $\pm$ 0.1 \\
+Decode & Dense 1B & $C=4$ & 441.7 $\pm$ 1.4 \\
+Decode & Dense 1B & $C=8$ & 837.4 $\pm$ 4.4 \\
+Decode & Dense 1B & $C=16$ & 1504.3 $\pm$ 4.1 \\
+Decode & Dense 1B & $C=32$ & 2542.2 $\pm$ 3.6 \\
+Decode & Dense 1B & $C=64$ & 3506.9 $\pm$ 238.1 \\
+Prefill & Dense 7B & $L=128$ & 4888.4 $\pm$ 32.7 \\
+Prefill & Dense 7B & $L=512$ & 4946.3 $\pm$ 14.6 \\
+Prefill & Dense 7B & $L=1024$ & 4903.1 $\pm$ 25.2 \\
+Prefill & Dense 7B & $L=2048$ & 4788.0 $\pm$ 18.4 \\
+Prefill & Dense 7B & $L=3072$ & 4722.5 $\pm$ 20.9 \\
+Prefill & MoE 1B active / 7B total & $L=128$ & 9291.8 $\pm$ 196.9 \\
+Prefill & MoE 1B active / 7B total & $L=512$ & 15315.5 $\pm$ 377.6 \\
+Prefill & MoE 1B active / 7B total & $L=1024$ & 15865.0 $\pm$ 203.0 \\
+Prefill & MoE 1B active / 7B total & $L=2048$ & 16020.8 $\pm$ 77.0 \\
+Prefill & MoE 1B active / 7B total & $L=3072$ & 15721.2 $\pm$ 27.6 \\
+Prefill & Dense 1B & $L=128$ & 15934.2 $\pm$ 4469.7 \\
+Prefill & Dense 1B & $L=512$ & 24583.6 $\pm$ 407.7 \\
+Prefill & Dense 1B & $L=1024$ & 24414.1 $\pm$ 288.4 \\
+Prefill & Dense 1B & $L=2048$ & 24266.1 $\pm$ 48.4 \\
+Prefill & Dense 1B & $L=3072$ & 23839.4 $\pm$ 20.9 \\
+\bottomrule
+\end{tabular}

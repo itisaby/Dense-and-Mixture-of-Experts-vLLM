@@ -21,9 +21,12 @@ $\alpha=2r$, keeping $\alpha/r=2$ constant so that rank was the intended
 LoRA hyperparameter change.
 
 \paragraph{Resource use and loss summary.}
-\textbf{TODO after the Colab run: include the generated table below and
-describe the trainable-parameter, peak-memory, runtime, and final-loss
-differences.}
+Trainable parameters increased linearly from 549,888 at rank 1 to 8,798,208
+at rank 16. Peak memory was nearly unchanged across the LoRA runs
+(12.70--12.79 GiB), compared with 15.26 GiB for full tuning, and all runs took
+2.66--2.75 minutes. Rank 16 achieved the best final held-out loss (1.3648).
+Full tuning reached the lowest training loss (1.1937) but finished at 1.4123
+validation loss, suggesting mild overfitting under the shared schedule.
 
 \begin{table}[t]
   \centering
@@ -59,12 +62,14 @@ fine-tuned variant for the same five held-out conversation prefixes. The
 prompts, held-out reference responses, and unedited generations are listed in
 \texttt{results/sft/qualitative\_generations.md}.
 
-\textbf{TODO after the Colab run: discuss two or three concrete examples.}
-Compare whether each model answers the requested instruction, adopts the
-assistant role instead of continuing the user text, produces a coherent
-conversational answer, and terminates with the expected message boundary.
-Do not claim that a larger rank is better unless both the held-out losses and
-the shown generations support that claim.
+The changes were useful but uneven. When a user asked to change topics, the
+base model continued explaining buoyancy, whereas all three LoRA variants
+acknowledged the request and suggested alternatives. On the mobile-app
+chatbot prompt, each tuned model followed the requested list format, although
+the 128-token generation limit cut several answers short. The pesto and
+skincare examples still contained plausible-sounding factual mistakes, so
+the run supports a modest gain in conversational instruction following, not
+a broad claim of improved factual quality.
 
 \paragraph{Artifacts.}
 The experiment is implemented in

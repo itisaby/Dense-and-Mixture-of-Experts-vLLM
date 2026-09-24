@@ -1,0 +1,76 @@
+{
+  "created_at_utc": "2026-09-11T17:29:46.355219+00:00",
+  "models": [
+    {
+      "key": "small_dense",
+      "model_id": "allenai/OLMo-2-0425-1B-Instruct",
+      "architecture": "dense",
+      "role": "small dense baseline",
+      "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e"
+    },
+    {
+      "key": "moe",
+      "model_id": "allenai/OLMoE-1B-7B-0924-Instruct",
+      "architecture": "moe",
+      "role": "~1B active / 7B total",
+      "revision": "7f1c97f440f06ce36705e4f2b843edb5925f4498"
+    },
+    {
+      "key": "large_dense",
+      "model_id": "allenai/OLMo-2-1124-7B",
+      "architecture": "dense",
+      "role": "large dense baseline",
+      "revision": "7df9a82518afdecae4e8c026b27adccc8c1f0032"
+    }
+  ],
+  "hardware_and_software": {
+    "gpu_name": "NVIDIA L4",
+    "gpu_memory_mib": 23034,
+    "gpu_driver_version": "580.82.07",
+    "gpu_compute_capability": "8.9",
+    "python_version": "3.13.15",
+    "torch_version": "2.8.0+cu128",
+    "cuda_version": "12.8",
+    "vllm_version": "0.10.2"
+  },
+  "fixed_server_settings": {
+    "weight_quantization": "fp8",
+    "kv_cache_dtype": "fp8",
+    "tensor_parallel_size": 1,
+    "max_model_len": 4096,
+    "gpu_memory_utilization": 0.9,
+    "max_num_seqs": 64,
+    "max_num_batched_tokens": 32768
+  },
+  "prefill": {
+    "input_lengths": [
+      128,
+      512,
+      1024,
+      2048,
+      3072
+    ],
+    "concurrency": 8,
+    "output_tokens_per_request": 1
+  },
+  "decode": {
+    "input_tokens_per_request": 32,
+    "output_tokens_per_request": 256,
+    "concurrencies": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64
+    ]
+  },
+  "warmups": 1,
+  "recorded_repetitions": 3,
+  "seed": 20250911,
+  "throughput_definition": {
+    "prefill": "sum of prompt tokens divided by batch wall-clock time",
+    "decode": "sum of output tokens divided by batch wall-clock time"
+  }
+}

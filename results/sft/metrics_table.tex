@@ -1,0 +1,10 @@
+\begin{tabular}{lrrrrr}
+\toprule
+Method & Trainable params & Peak GiB & Time (min) & Mean train loss & Final val. loss \\
+\midrule
+LoRA r=1 & 549,888 & 12.70 & 2.66 & 1.4053 & 1.3879 \\
+LoRA r=4 & 2,199,552 & 12.73 & 2.73 & 1.3889 & 1.3739 \\
+LoRA r=16 & 8,798,208 & 12.79 & 2.75 & 1.3678 & 1.3648 \\
+Full tuning & 494,032,768 & 15.26 & 2.66 & 1.1937 & 1.4123 \\
+\bottomrule
+\end{tabular}
